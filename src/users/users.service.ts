@@ -9,5 +9,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User) private readonly user: Repository<User>,
   ) {}
-  public async createUser(userCrediential: CreateUserDto) {}
+  public async createUser(userCrediential: CreateUserDto) {
+    const user = this.user.create({ ...userCrediential });
+    return this.user.save(user);
+  }
 }
