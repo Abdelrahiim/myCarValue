@@ -14,6 +14,9 @@ export class UsersService {
     return this.user.save(user);
   }
   public async retrieve(id: number) {
+    if (!id) {
+      throw new NotFoundException('User Not defined');
+    }
     return this.user.findOneBy({ id });
   }
   find(email: string) {

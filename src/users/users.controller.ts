@@ -8,16 +8,25 @@ import {
   Query,
   Delete,
   NotFoundException,
+  Session,
+  HttpCode,
+  UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dtos/create_user.dto';
 import { UpdateUserDto } from './dtos/update_user.dto';
-import { Serialize } from './interceptors/serialize.interceptor';
+import { Serialize } from '../interceptors/serialize.interceptor';
 import { UserDto } from './dtos/user.dto';
 import { AuthService } from './auth.service';
+import { CurrentUserInterceptor } from 'src/interceptors/current-user.interceptor';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { User } from './users.entity';
+import { AuthGuard } from 'src/auth/auth.guard';
 
 @Controller('users')
 @Serialize(UserDto)
+@UseInterceptors(CurrentUserInterceptor)
 export class UsersController {
   constructor(
     private readonly usersService: UsersService,
@@ -25,13 +34,20 @@ export class UsersController {
   ) {}
 
   @Post('auth/sign-up')
-  public createUser(@Body() body: CreateUserDto) {
-    return this.authService.signUp(body.email, body.password);
+  @HttpCode(201)
+  public async createUser(
+    @Body() body: CreateUserDto,
+    @Session() session: any,
+  ) {
+    const user = await this.authService.signUp(body.email, body.password);
+    session.userId = user.id;
   }
 
   @Post('auth/sign-in')
-  private signIn(@Body() body: CreateUserDto) {
-    return this.authService.signIn(body.email, body.password);
+  @HttpCode(200)
+  public async signIn(@Body() body: CreateUserDto, @Session() session: any) {
+    const user = await this.authService.signIn(body.email, body.password);
+    session.userId = user.id;
   }
 
   // Not wanted anymore
@@ -39,9 +55,23 @@ export class UsersController {
   public create(@Body() body: CreateUserDto) {
     return this.usersService.create(body);
   }
+
+  @Delete('/sign-out')
+  signOut(@Session() session: any) {
+    session.userId = null;
+    console.log('Sign out correctly');
+    return 'Sign out correctly';
+  }
+  @Get('/me')
+  @UseGuards(AuthGuard)
+  whoAmI(@CurrentUser() user: User) {
+    return user;
+  }
+
   @Get('/:id')
-  public findUser(@Param('id') id: string) {
-    const user = this.usersService.retrieve(Number(id));
+  public async findUser(@Param('id') id: string, @CurrentUser() user2) {
+    console.log(user2);
+    const user = await this.usersService.retrieve(Number(id));
     if (!user) {
       throw new NotFoundException('Not Found');
     }

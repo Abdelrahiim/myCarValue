@@ -9,7 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(
     cookieSession({
-      keys: ['hello world'],
+      keys: ['635ed0f800e6e3ed6bcd53d13d82db5c'],
     }),
   );
   app.useGlobalPipes(
